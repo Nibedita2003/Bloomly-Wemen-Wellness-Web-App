@@ -6,6 +6,7 @@ import BottomNav from "./components/BottomNav";
 
 export default function App() {
   return (
+    
     <div className="min-h-screen bg-pink-50 flex flex-col">
       <div className="flex-1 w-full max-w-md mx-auto p-4 sm:p-6">
         <TopBar />
