@@ -3,23 +3,23 @@
 export const musicTracks = [
   { 
     id: 1, 
-    title: "Ocean Waves", 
-    artist: "Nature Sounds", 
+    title: "Morning Forest", 
+    artist: "Nature Therapy", 
     mood: "calm", 
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" 
+    url: "https://actions.google.com/sounds/v1/ambiences/forest_morning.ogg" 
   },
   { 
     id: 2, 
-    title: "Morning Focus", 
-    artist: "Lofi Beats", 
+    title: "Heavy Rain", 
+    artist: "Focus Ambience", 
     mood: "energetic", 
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" 
+    url: "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg" 
   },
   { 
     id: 3, 
-    title: "Deep Piano", 
-    artist: "Healing Melodies", 
+    title: "Night Crickets", 
+    artist: "Sleep Sounds", 
     mood: "low", 
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" 
+    url: "https://actions.google.com/sounds/v1/animals/crickets_chirping.ogg" 
   }
 ];
