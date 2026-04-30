@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 
 // 1. Context & Styles
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -12,26 +12,24 @@ import MusicPlayer from './components/MusicPlayer';
 
 // 3. Dedicated Pages
 import LogPage from './pages/LogPage';
+import LoginPage from './pages/LoginPage';
 
 // --- DASHBOARD COMPONENT ---
-const Dashboard = () => {
+const Dashboard = ({ user, onLogout }) => {
   const { style } = useTheme();
 
   return (
     <div className={`min-h-screen ${style.bg} pb-20 transition-colors duration-1000`}>
-      {/* Navigation Bar */}
-      <Navbar />
-      
+      <Navbar user={user} onLogout={onLogout} />
+
       <main className="max-w-4xl mx-auto px-6 mt-10">
-        {/* Welcome Header */}
         <header className="mb-10">
           <h3 className="text-gray-400 font-medium tracking-wide">Welcome back,</h3>
           <h1 className="text-4xl font-black text-gray-800 italic tracking-tighter">
-            Your Bloomly Dashboard
+            Hii {user?.name || 'Beautiful'}
           </h1>
         </header>
 
-        {/* Action: Link to Calendar Page */}
         <Link to="/update-period" className="block mb-8 group">
           <div className="bg-white p-6 rounded-[2.5rem] border-2 border-dashed border-gray-200 flex justify-between items-center hover:border-rose-300 hover:bg-rose-50/30 transition-all">
             <div className="flex items-center gap-4">
@@ -47,22 +45,18 @@ const Dashboard = () => {
           </div>
         </Link>
 
-        {/* Cycle Prediction Section */}
         <div className="mb-8">
           <CycleCard />
         </div>
 
-        {/* Health Stats (Hydration & BMI/Weight) */}
         <div className="mb-8">
           <Stats />
         </div>
 
-        {/* Music Therapy Section */}
         <div className="mb-8">
           <MusicPlayer />
         </div>
 
-        {/* Footer */}
         <footer className="mt-16 pt-8 border-t border-gray-100 text-center">
           <p className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em]">
             Bloomly Women's Wellness • 2026
@@ -75,15 +69,68 @@ const Dashboard = () => {
 
 // --- MAIN APP WRAPPER ---
 function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check if user is logged in on mount
+    const storedUser = localStorage.getItem('bloomly_user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        localStorage.removeItem('bloomly_user');
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  const handleLogin = (userData) => {
+    // Save to localStorage so user stays logged in on refresh
+    localStorage.setItem('bloomly_user', JSON.stringify(userData));
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('bloomly_user');
+    setUser(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-rose-50">
+        <div className="text-rose-400 font-bold animate-pulse">Loading Bloomly...</div>
+      </div>
+    );
+  }
+
   return (
     <ThemeProvider>
       <Router>
         <Routes>
-          {/* Main Home Route */}
-          <Route path="/" element={<Dashboard />} />
-          
-          {/* Dedicated Calendar Page Route */}
-          <Route path="/update-period" element={<LogPage />} />
+          {/* Main Home Route - Protected */}
+          <Route
+            path="/"
+            element={
+              user ? <Dashboard user={user} onLogout={handleLogout} /> : <Navigate to="/login" />
+            }
+          />
+
+          {/* Dedicated Calendar Page Route - Protected */}
+          <Route
+            path="/update-period"
+            element={
+              user ? <LogPage /> : <Navigate to="/login" />
+            }
+          />
+
+          {/* Login Route - Passes handleLogin to save session */}
+          <Route
+            path="/login"
+            element={
+              !user ? <LoginPage onLogin={handleLogin} /> : <Navigate to="/" />
+            }
+          />
         </Routes>
       </Router>
     </ThemeProvider>

@@ -1,8 +1,8 @@
 import React from 'react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, LogOut } from 'lucide-react';
 import { useTheme, moodStyles } from '../context/ThemeContext';
 
-const Navbar = () => {
+const Navbar = ({ user, onLogout }) => {
   // We pull the current mood and the "setMood" function from our Context
   const { mood, setMood, style } = useTheme();
 
@@ -16,21 +16,40 @@ const Navbar = () => {
         <h1 className="text-xl font-black text-gray-800 tracking-tight">Bloomly</h1>
       </div>
       
-      {/* Mood Switcher Section */}
-      <div className="flex bg-gray-200/50 p-1 rounded-full shadow-inner">
-        {Object.keys(moodStyles).map((m) => (
-          <button
-            key={m}
-            onClick={() => setMood(m)}
-            className={`px-6 py-2 rounded-full text-xs font-bold transition-all duration-300 ${
-              mood === m 
-                ? `${style.button} text-white shadow-md scale-105` 
-                : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {m.toUpperCase()}
-          </button>
-        ))}
+      <div className="flex items-center gap-6">
+        {/* Mood Switcher Section */}
+        <div className="flex bg-gray-200/50 p-1 rounded-full shadow-inner">
+          {Object.keys(moodStyles).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMood(m)}
+              className={`px-6 py-2 rounded-full text-xs font-bold transition-all duration-300 ${
+                mood === m 
+                  ? `${style.button} text-white shadow-md scale-105` 
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {m.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* User Auth Section */}
+        {user && (
+          <div className="flex items-center gap-4 border-l border-gray-300 pl-6">
+            <span className="text-sm font-bold text-gray-700 hidden md:block">
+              Hii {user.name}
+            </span>
+            <button 
+              onClick={onLogout}
+              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-rose-500 transition-colors"
+              title="Logout"
+            >
+              <LogOut size={18} />
+              <span className="hidden md:block">Logout</span>
+            </button>
+          </div>
+        )}
       </div>
     </nav>
   );
