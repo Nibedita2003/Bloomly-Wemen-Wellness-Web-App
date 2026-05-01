@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import Calendar from 'react-calendar';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, Target, ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Sparkles } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import 'react-calendar/dist/Calendar.css';
+import CycleCard from '../components/CycleCard';
 
 const LogPage = () => {
   const { style } = useTheme();
@@ -11,18 +10,30 @@ const LogPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [loading, setLoading] = useState(false);
 
-  const cycleLength = 28;
-
   const handleSaveCycle = async () => {
     setLoading(true);
     try {
       const user = JSON.parse(localStorage.getItem('bloomly_user'));
+
+      // Calculate a 7-day period if end date isn't manually specified
+      // Start Date + 6 days = 7 total days of period
+      const endDate = new Date(selectedDate);
+      endDate.setDate(selectedDate.getDate() + 6);
+
       const response = await fetch('http://localhost:5000/api/cycle/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user._id, lastPeriodDate: selectedDate }),
+        body: JSON.stringify({
+          userId: user._id,
+          lastPeriodDate: selectedDate,
+          predictedEndDate: endDate
+        }),
       });
-      if (response.ok) alert('Cycle updated successfully!');
+
+      if (response.ok) {
+        alert('Cycle updated! We marked a 7-day window for you.');
+        navigate('/');
+      }
     } catch (err) {
       console.error('Failed to save cycle');
     } finally {
@@ -30,50 +41,44 @@ const LogPage = () => {
     }
   };
 
-  const renderTileContent = ({ date, view }) => {
-    if (view !== 'month') return null;
-    const diffTime = date.getTime() - selectedDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    const cycleDay = ((diffDays % cycleLength) + cycleLength) % cycleLength;
-
-    if (cycleDay === 14) return <div className="flex justify-center mt-1"><Target size={14} className="text-purple-500 animate-bounce" /></div>;
-    if (cycleDay >= 9 && cycleDay < 14) return <div className="flex justify-center mt-1"><Leaf size={14} className="text-emerald-500" /></div>;
-    return null;
-  };
-
   return (
-    <div className={`min-h-screen ${style.bg} p-6`}>
-      <button onClick={() => navigate('/')} className="flex items-center gap-2 text-gray-500 mb-8 hover:text-gray-800 font-bold">
-        <ArrowLeft size={20} /> Dashboard
+    <div className={`min-h-screen ${style.bg} p-6 transition-colors duration-1000`}>
+      <button
+        onClick={() => navigate('/')}
+        className="flex items-center gap-2 text-gray-400 mb-8 hover:text-rose-400 font-bold transition-colors"
+      >
+        <ArrowLeft size={20} /> DASHBOARD
       </button>
 
-      <div className="max-w-md mx-auto bg-white p-8 rounded-[3rem] shadow-2xl border border-gray-100">
-        <header className="mb-6">
-          <h1 className="text-3xl font-black text-gray-800">Update Cycle</h1>
-          <p className="text-sm text-gray-400">Select the first day of your last period.</p>
+      <div className="max-w-md mx-auto">
+        <header className="mb-8">
+          <div className="flex items-center gap-2 mb-2">
+            <Sparkles size={18} className="text-rose-400" />
+            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              Manual Logger
+            </span>
+          </div>
+          <h1 className="text-4xl font-black text-gray-800 italic tracking-tighter">Log Period</h1>
+          <p className="text-gray-400 text-sm mt-1">
+            Pick your start date. We'll automatically mark a 7-day period for you.
+          </p>
         </header>
 
-        <div className="bloomly-calendar-wrapper">
-          <Calendar onChange={setSelectedDate} value={selectedDate} tileContent={renderTileContent} />
-        </div>
+        {/* Interactive Calendar Component */}
+        <CycleCard onDateChange={setSelectedDate} />
 
         <button
           onClick={handleSaveCycle}
           disabled={loading}
-          className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all"
+          className="mt-8 w-full flex items-center justify-center gap-2 py-4 bg-gray-900 text-white rounded-3xl font-black shadow-xl hover:bg-black transition-all active:scale-95"
         >
-          <Save size={18} /> {loading ? 'Saving...' : 'Save Cycle Data'}
+          <Save size={18} /> {loading ? 'SAVING...' : 'CONFIRM DATES'}
         </button>
 
-        <div className="mt-8 grid grid-cols-1 gap-3">
-          <div className="flex items-center gap-4 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
-            <Leaf size={16} className="text-emerald-500" />
-            <p className="text-sm text-emerald-600 font-medium">Fertility Phase (High chance)</p>
-          </div>
-          <div className="flex items-center gap-4 p-4 bg-purple-50 rounded-2xl border border-purple-100">
-            <Target size={16} className="text-purple-500" />
-            <p className="text-sm text-purple-600 font-medium">Ovulation Day</p>
-          </div>
+        <div className="mt-8 p-6 bg-white/60 rounded-[2rem] border border-dashed border-gray-200">
+          <p className="text-xs text-gray-500 italic">
+            Note: Bloomly predicts a 7-day duration by default. You can adjust this in your profile settings.
+          </p>
         </div>
       </div>
     </div>
