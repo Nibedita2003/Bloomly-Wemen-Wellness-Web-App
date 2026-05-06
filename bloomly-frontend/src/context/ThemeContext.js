@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { supabase } from '../supabaseClient'; // Import our database connection
 
-// 1. Define your styles
 export const moodStyles = {
   calm: {
     bg: "bg-blue-50",
@@ -25,30 +23,12 @@ export const moodStyles = {
 
 const ThemeContext = createContext();
 
-// 2. The Provider Component
 export const ThemeProvider = ({ children }) => {
   const [mood, setMood] = useState('calm');
 
-  // Function to update mood locally AND in the database
-  const updateMood = async (newMood) => {
-    setMood(newMood); // Updates the UI immediately
-    
-    // Attempt to save to Supabase
-    try {
-      const { error } = await supabase
-        .from('wellness_logs')
-        .insert([{ mood: newMood }]);
-
-      if (error) console.error("Supabase Error:", error.message);
-      else console.log("Mood logged to DB!");
-    } catch (err) {
-      console.error("Connection failed:", err);
-    }
-  };
-
   const value = {
     mood,
-    setMood: updateMood, // We swap the default setMood for our DB-connected version
+    setMood,
     style: moodStyles[mood]
   };
 
@@ -59,7 +39,6 @@ export const ThemeProvider = ({ children }) => {
   );
 };
 
-// 3. The Hook for other components to use
 export const useTheme = () => {
   const context = useContext(ThemeContext);
   if (!context) {

@@ -29,7 +29,11 @@ const BottomNav = () => {
       </button>
       
       <div className="relative -top-8 px-2">
-        <button className={`w-14 h-14 ${style.button} rounded-full flex items-center justify-center text-white shadow-xl border-[4px] border-[#FDFCFM] active:scale-95 transition-all`}>
+        <button
+          onClick={() => navigate('/log')}
+          className={`w-14 h-14 ${style.button} rounded-full flex items-center justify-center text-white shadow-xl border-[4px] border-[#FDFCFM] active:scale-95 transition-all`}
+          title="Quick log"
+        >
           <Plus size={28} strokeWidth={3} />
         </button>
       </div>

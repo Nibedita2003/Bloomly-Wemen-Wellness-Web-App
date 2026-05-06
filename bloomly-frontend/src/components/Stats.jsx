@@ -1,23 +1,16 @@
 import React, { useState } from 'react';
-import { Droplets, Scale, PartyPopper, Info, RotateCcw } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { Droplets, Scale, Info, RotateCcw } from 'lucide-react';
+import { calculateBMI, getBMICategory } from '../utils/healthCalculations';
 
 const Stats = () => {
-  const { style } = useTheme();
-  
   // State
   const [water, setWater] = useState(0);
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const [bmi, setBmi] = useState(null);
 
-  // --- Logic Helpers ---
-  const calculateBMI = () => {
-    if (weight && height) {
-      const heightInMeters = height / 100;
-      const result = (weight / (heightInMeters * heightInMeters)).toFixed(1);
-      setBmi(result);
-    }
+  const handleCalculateBMI = () => {
+    setBmi(calculateBMI(weight, height));
   };
 
   const resetBMI = () => {
@@ -28,12 +21,7 @@ const Stats = () => {
 
   const resetWater = () => setWater(0);
 
-  const getBMIMessage = (val) => {
-    if (val < 18.5) return { text: "Underweight range. Focus on nutrition! 🥗", color: "text-blue-500" };
-    if (val <= 24.9) return { text: "Healthy weight. Perfect balance! ✨", color: "text-emerald-500" };
-    if (val <= 29.9) return { text: "Overweight range. Stay active! 🚶‍♀️", color: "text-orange-500" };
-    return { text: "Obesity range. Small daily goals help! ❤️", color: "text-rose-500" };
-  };
+  const bmiMessage = bmi ? getBMICategory(bmi) : null;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -114,18 +102,18 @@ const Stats = () => {
           />
         </div>
 
-        <button 
-          onClick={calculateBMI}
-          className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold mb-4 hover:bg-emerald-600 transition-all shadow-md"
-        >
-          Analyze Weight
-        </button>
+          <button 
+            onClick={handleCalculateBMI}
+            className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold mb-4 hover:bg-emerald-600 transition-all shadow-md"
+          >
+            Analyze Weight
+          </button>
 
         {bmi ? (
           <div className="p-4 rounded-2xl bg-emerald-50/50 border border-emerald-100">
-            <p className={`text-sm font-black mb-1 ${getBMIMessage(bmi).color}`}>BMI: {bmi}</p>
+            <p className={`text-sm font-black mb-1 ${bmiMessage.color}`}>BMI: {bmi}</p>
             <p className="text-xs font-medium text-gray-600 leading-tight">
-              {getBMIMessage(bmi).text}
+              {bmiMessage.text}
             </p>
           </div>
         ) : (

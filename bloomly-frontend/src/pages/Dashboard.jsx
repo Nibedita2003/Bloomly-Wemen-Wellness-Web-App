@@ -2,8 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import Navbar from '../components/Navbar'; // Top navigation
+import TopBar from '../components/TopBar';
+import CalendarStrip from '../components/CalendarStrip';
+import CycleCard from '../components/CycleCard';
 import Stats from '../components/Stats';
 import MusicPlayer from '../components/MusicPlayer';
+import TodayStatus from '../components/TodayStatus';
 
 const Dashboard = ({ user, onLogout }) => {
   const { style } = useTheme();
@@ -14,12 +18,16 @@ const Dashboard = ({ user, onLogout }) => {
       <Navbar user={user} onLogout={onLogout} />
 
       <main className="max-w-4xl mx-auto px-6 mt-10">
-        <header className="mb-10">
+        <TopBar pathname="/" />
+
+        <header className="mb-8">
           <h3 className="text-gray-400 font-medium tracking-wide uppercase text-[10px]">Welcome back,</h3>
           <h1 className="text-4xl font-black text-gray-800 italic tracking-tighter">
             Hii {user?.name || 'Beautiful'} <span className="text-rose-400">.</span>
           </h1>
         </header>
+
+        <CalendarStrip />
 
         {/* Track Your Cycle Shortcut */}
         <Link to="/log" className="block mb-8 group">
@@ -36,6 +44,12 @@ const Dashboard = ({ user, onLogout }) => {
             <span className="text-[10px] text-gray-300 group-hover:text-rose-400 transition-colors font-black mr-2 tracking-widest">OPEN</span>
           </div>
         </Link>
+
+        <div className="mb-8">
+          <CycleCard />
+        </div>
+
+        <TodayStatus />
 
         {/* Stats Section */}
         <div className="mb-8">

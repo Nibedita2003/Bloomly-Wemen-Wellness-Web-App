@@ -16,7 +16,6 @@ const LoginPage = ({ onLogin }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // --- NEW: Google Sign-In Function ---
   const handleGoogleSignIn = async () => {
     setError('');
     setLoading(true);
@@ -25,20 +24,23 @@ const LoginPage = ({ onLogin }) => {
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-
-      // Check if user already exists in Firestore to avoid overwriting data
-      const userDoc = await getDoc(doc(db, "users", user.uid));
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
 
       if (!userDoc.exists()) {
-        await setDoc(doc(db, "users", user.uid), {
-          name: user.displayName,
+        await setDoc(userRef, {
+          name: user.displayName || user.email?.split('@')[0] || 'Bloomly User',
           email: user.email,
           createdAt: new Date(),
-          photoURL: user.photoURL
+          photoURL: user.photoURL || null
         });
       }
 
-      if (onLogin) onLogin({ uid: user.uid, name: user.displayName });
+      const savedName = userDoc.exists()
+        ? userDoc.data().name
+        : user.displayName || user.email?.split('@')[0] || 'Bloomly User';
+
+      if (onLogin) onLogin({ uid: user.uid, name: savedName });
       navigate('/');
     } catch (err) {
       setError("Google login failed. Please try again.");
@@ -70,7 +72,9 @@ const LoginPage = ({ onLogin }) => {
         if (onLogin) onLogin({ uid: user.uid, name: formData.name });
       } else {
         const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-        if (onLogin) onLogin({ uid: userCredential.user.uid });
+        const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+        const savedName = userDoc.exists() ? userDoc.data().name : formData.email.split('@')[0];
+        if (onLogin) onLogin({ uid: userCredential.user.uid, name: savedName });
       }
       navigate('/');
     } catch (err) {
@@ -106,7 +110,7 @@ const LoginPage = ({ onLogin }) => {
           className="w-full mb-6 py-4 flex items-center justify-center gap-3 bg-white border-2 border-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
         >
           <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google icon" className="w-5 h-5" />
-          Continue with Google
+          {loading ? 'Opening Google...' : 'Continue with Google'}
         </button>
 
         <div className="flex items-center mb-6">

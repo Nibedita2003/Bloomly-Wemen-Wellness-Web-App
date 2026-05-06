@@ -155,7 +155,9 @@
 import React, { useState, useMemo } from 'react';
 import Calendar from 'react-calendar';
 import { useTheme } from '../context/ThemeContext';
-import { Edit2, Home, Heart, BarChart3, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Edit2, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import TopBar from '../components/TopBar';
+import PeriodCalendar from '../components/PeriodCalendar';
 import 'react-calendar/dist/Calendar.css';
 
 const LogPage = () => {
@@ -198,8 +200,11 @@ const LogPage = () => {
 
   return (
     <div className={`min-h-screen ${style.bg} pb-32 font-sans transition-colors duration-1000`}>
-      {/* Header - Icons Hataye Gaye Hain */}
-      <header className="p-8 text-center">
+      <div className="px-8 pt-8">
+        <TopBar pathname="/log" />
+      </div>
+
+      <header className="px-8 pb-8 text-center">
         <span className={`text-[11px] font-black opacity-60 uppercase tracking-[0.3em] block mb-1`}>
           {activeStartDate.getFullYear()}
         </span>
@@ -212,8 +217,30 @@ const LogPage = () => {
       <div className="px-5">
         <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/40 overflow-hidden border border-white relative">
           <div className="flex justify-between p-4 absolute w-full z-10 pointer-events-none">
-            <button onClick={() => setActiveStartDate(new Date(activeStartDate.setMonth(activeStartDate.getMonth() - 1)))} className="pointer-events-auto p-2 text-gray-300 hover:text-gray-500 transition-colors"><ChevronLeft size={24}/></button>
-            <button onClick={() => setActiveStartDate(new Date(activeStartDate.setMonth(activeStartDate.getMonth() + 1)))} className="pointer-events-auto p-2 text-gray-300 hover:text-gray-500 transition-colors"><ChevronRight size={24}/></button>
+            <button
+              onClick={() =>
+                setActiveStartDate((current) => {
+                  const next = new Date(current);
+                  next.setMonth(current.getMonth() - 1);
+                  return next;
+                })
+              }
+              className="pointer-events-auto p-2 text-gray-300 hover:text-gray-500 transition-colors"
+            >
+              <ChevronLeft size={24} />
+            </button>
+            <button
+              onClick={() =>
+                setActiveStartDate((current) => {
+                  const next = new Date(current);
+                  next.setMonth(current.getMonth() + 1);
+                  return next;
+                })
+              }
+              className="pointer-events-auto p-2 text-gray-300 hover:text-gray-500 transition-colors"
+            >
+              <ChevronRight size={24} />
+            </button>
           </div>
 
           <Calendar 
@@ -259,6 +286,10 @@ const LogPage = () => {
           <div className={`w-3 h-3 rounded-full animate-pulse ${currentStatus.bg}`}></div>
           <span className="font-black text-sm uppercase tracking-tight">{currentStatus.status}</span>
         </div>
+      </div>
+
+      <div className="px-8 mt-8">
+        <PeriodCalendar startDate={lastPeriodStart} />
       </div>
 
       <style>{`

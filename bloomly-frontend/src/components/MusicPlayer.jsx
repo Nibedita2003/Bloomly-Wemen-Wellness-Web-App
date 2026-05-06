@@ -12,9 +12,19 @@ const MusicPlayer = () => {
 
   // Update audio source when track changes
   useEffect(() => {
-    audioRef.current.src = currentTrack.url;
-    if (isPlaying) audioRef.current.play();
-  }, [currentTrack]);
+    const audio = audioRef.current;
+    audio.src = currentTrack.url;
+
+    if (isPlaying) {
+      audio.play().catch(() => {
+        setIsPlaying(false);
+      });
+    }
+
+    return () => {
+      audio.pause();
+    };
+  }, [currentTrack, isPlaying]);
 
   const togglePlay = () => {
     if (isPlaying) {
