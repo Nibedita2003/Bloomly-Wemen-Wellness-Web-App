@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import Navbar from '../components/Navbar'; // Top navigation
 import TopBar from '../components/TopBar';
-import CalendarStrip from '../components/CalendarStrip';
 import CycleCard from '../components/CycleCard';
 import Stats from '../components/Stats';
 import MusicPlayer from '../components/MusicPlayer';
@@ -26,8 +25,6 @@ const Dashboard = ({ user, onLogout }) => {
             Hii {user?.name || 'Beautiful'} <span className="text-rose-400">.</span>
           </h1>
         </header>
-
-        <CalendarStrip />
 
         {/* Track Your Cycle Shortcut */}
         <Link to="/log" className="block mb-8 group">

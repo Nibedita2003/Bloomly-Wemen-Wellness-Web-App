@@ -106,7 +106,7 @@ const Stats = () => {
             onClick={handleCalculateBMI}
             className="w-full py-3 bg-emerald-500 text-white rounded-xl font-bold mb-4 hover:bg-emerald-600 transition-all shadow-md"
           >
-            Analyze Weight
+            Analyze BMI
           </button>
 
         {bmi ? (
