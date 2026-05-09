@@ -13,6 +13,9 @@ const StatsPage = ({ user, onLogout }) => {
   const [currentView, setCurrentView] = useState('analysis');
   const [periods, setPeriods] = useState([]);
   
+  // --- DYNAMIC STATS STATE ---
+  const [avgStats, setAvgStats] = useState({ period: 0, cycle: 0 });
+
   const femaleAvatars = [
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Annie&mouth=smile",
     "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella&mouth=smile",
@@ -38,9 +41,47 @@ const StatsPage = ({ user, onLogout }) => {
         }
       });
 
-      const q = query(collection(db, 'users', activeUid, 'periods'), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, 'users', activeUid, 'periods'), orderBy('startDate', 'desc'));
       const unsubPeriods = onSnapshot(q, (snapshot) => {
-        setPeriods(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const rawData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        const uniquePeriods = [];
+        const seenMonths = new Set();
+
+        rawData.forEach(item => {
+          if (item.startDate) {
+            const monthYear = item.startDate.substring(0, 7);
+            if (!seenMonths.has(monthYear)) {
+              uniquePeriods.push(item);
+              seenMonths.add(monthYear);
+            }
+          }
+        });
+
+        setPeriods(uniquePeriods);
+
+        // --- DYNAMIC CALCULATION LOGIC ---
+        if (uniquePeriods.length > 0) {
+          let totalP = 0, pCount = 0, totalC = 0, cCount = 0;
+
+          uniquePeriods.forEach((item, index) => {
+            // Period Length Calculation
+            if (item.startDate && item.endDate) {
+              const d = Math.ceil(Math.abs(new Date(item.endDate) - new Date(item.startDate)) / (1000 * 60 * 60 * 24)) + 1;
+              if (d > 0 && d < 15) { totalP += d; pCount++; }
+            }
+            // Cycle Length Calculation
+            if (index < uniquePeriods.length - 1) {
+              const c = Math.ceil(Math.abs(new Date(item.startDate) - new Date(uniquePeriods[index+1].startDate)) / (1000 * 60 * 60 * 24));
+              if (c > 15 && c < 45) { totalC += c; cCount++; }
+            }
+          });
+
+          setAvgStats({
+            period: pCount > 0 ? Math.round(totalP / pCount) : 0,
+            cycle: cCount > 0 ? Math.round(totalC / cCount) : 28
+          });
+        }
       });
 
       return () => {
@@ -49,6 +90,16 @@ const StatsPage = ({ user, onLogout }) => {
       };
     }
   }, [user]);
+
+  const getPeriodWidth = (start, end) => {
+    if (!start) return '0%';
+    const startDate = new Date(start);
+    const endDate = end ? new Date(end) : new Date(); 
+    const diffTime = Math.abs(endDate - startDate);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) || 1;
+    const width = (diffDays / (avgStats.cycle || 28)) * 100;
+    return `${Math.min(width, 80)}%`; 
+  };
 
   const handlePhotoSelect = async (photo) => {
     setProfilePhoto(photo);
@@ -71,23 +122,28 @@ const StatsPage = ({ user, onLogout }) => {
   if (currentView === 'history') {
     return (
       <div className={`min-h-screen ${style.bg} p-6 pb-24 font-sans`}>
-        <button onClick={() => setCurrentView('analysis')} className="mb-4 flex items-center gap-2 text-gray-500 font-bold">
+        <button onClick={() => setCurrentView('analysis')} className="mb-4 flex items-center gap-2 text-gray-500 font-bold active:scale-90 transition-transform">
           <ArrowLeft size={20} /> Back
         </button>
-        <h2 className="text-2xl font-black text-gray-800 mb-6 italic uppercase">My cycles</h2>
-        <div className="space-y-6">
+        <h2 className="text-2xl font-black text-gray-800 mb-6 italic uppercase tracking-tighter">Cycle History</h2>
+        <div className="space-y-8">
           {periods.length > 0 ? periods.map((item) => (
-            <div key={item.id} className="space-y-2">
+            <div key={item.id} className="space-y-3">
               <div className="flex justify-between text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                <span>{item.startDate} - {item.endDate}</span>
-                <span>28 Days</span>
+                <span>{item.startDate} {item.endDate ? `- ${item.endDate}` : '(Active Now)'}</span>
+                <span className="text-rose-500 font-black">{avgStats.cycle} Days Cycle</span>
               </div>
-              <div className="h-4 w-full bg-gray-100 rounded-full flex overflow-hidden">
-                <div className="bg-rose-400 h-full rounded-full" style={{width: '25%'}}></div>
-                <div className="bg-orange-300 h-full rounded-full ml-12" style={{width: '18%'}}></div>
+              <div className="h-5 w-full bg-gray-100 rounded-full flex overflow-hidden p-1 shadow-sm border border-white">
+                <div 
+                  className="bg-rose-400 h-full rounded-full transition-all duration-1000" 
+                  style={{width: getPeriodWidth(item.startDate, item.endDate)}}
+                ></div>
+                <div className="bg-orange-200 h-full rounded-full opacity-30 ml-4" style={{width: '15%'}}></div>
               </div>
             </div>
-          )) : <p className="text-gray-400 font-bold text-center mt-20">No cycles logged yet.</p>}
+          )) : (
+            <p className="text-gray-400 font-bold text-center mt-20">No cycles logged yet.</p>
+          )}
         </div>
       </div>
     );
@@ -96,7 +152,6 @@ const StatsPage = ({ user, onLogout }) => {
   return (
     <div className={`min-h-screen ${style.bg} pb-32 transition-colors duration-1000 font-sans`}>
       <Navbar user={user} onLogout={onLogout} />
-      
       <main className="max-w-4xl mx-auto px-4 mt-6">
         <TopBar pathname="/stats" />
 
@@ -106,88 +161,57 @@ const StatsPage = ({ user, onLogout }) => {
           <div className="w-6" />
         </div>
 
-        {/* 1. Profile Information Card */}
         <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-blue-50 flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <div className="relative">
               <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white shadow-md bg-rose-50">
                 <img src={profilePhoto} alt="Profile" className="w-full h-full object-cover" />
               </div>
-              <button 
-                onClick={() => setIsEditingPhoto(!isEditingPhoto)}
-                className="absolute -bottom-1 -right-1 bg-rose-500 rounded-full p-1.5 border-2 border-white text-white shadow-lg active:scale-95 transition-all"
-              >
-                <Camera size={12} />
-              </button>
+              <button onClick={() => setIsEditingPhoto(!isEditingPhoto)} className="absolute -bottom-1 -right-1 bg-rose-500 rounded-full p-1.5 border-2 border-white text-white shadow-lg"><Camera size={12} /></button>
             </div>
             <div>
               <h2 className="font-black text-gray-800 text-lg">Nibedita</h2>
-              <p className="text-[11px] text-gray-400 font-bold lowercase tracking-tight">{userEmail}</p>
-              <p className="text-[10px] text-rose-400 font-black mt-1 uppercase italic tracking-tighter">Sync Active</p>
+              <p className="text-[11px] text-gray-400 font-bold tracking-tight">{userEmail}</p>
+              <p className="text-[10px] text-rose-400 font-black mt-1 uppercase italic tracking-tighter">Unified Sync Active</p>
             </div>
           </div>
           <ChevronRight className="text-gray-200" size={20} />
         </div>
 
-        {/* Avatar Selection */}
-        {isEditingPhoto && (
-          <div className="bg-white/90 backdrop-blur-md rounded-[2rem] p-6 border-2 border-rose-100 shadow-2xl mb-8 animate-in slide-in-from-top-2 duration-300">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Select Profile Avatar</h4>
-              <X className="text-gray-300 cursor-pointer" size={18} onClick={() => setIsEditingPhoto(false)} />
-            </div>
-            <div className="grid grid-cols-5 gap-3">
-              {femaleAvatars.map((photo, i) => (
-                <button 
-                  key={i} 
-                  onClick={() => handlePhotoSelect(photo)}
-                  className={`aspect-square rounded-full overflow-hidden border-2 transition-all ${profilePhoto === photo ? 'border-rose-500 scale-105 shadow-md' : 'border-transparent bg-gray-50'}`}
-                >
-                  <img src={photo} alt="avatar option" className="w-full h-full" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 2. Avg Boxes & Cycle Preview */}
         <div className="bg-white rounded-[2.5rem] p-6 shadow-sm border border-blue-50 mb-8">
-           <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-500 font-black italic text-xl">o</div>
-                <h3 className="font-black text-gray-800 uppercase text-sm tracking-widest">My cycles</h3>
+                <h3 className="font-black text-gray-800 uppercase text-sm tracking-widest">Current cycle</h3>
               </div>
-           </div>
+            </div>
 
-           <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-rose-50 p-5 rounded-[2rem] border border-rose-100 text-center">
-                <h4 className="text-2xl font-black text-rose-500">6 Days</h4>
+                <h4 className="text-2xl font-black text-rose-500">{avgStats.period || '--'} Days</h4>
                 <p className="text-[10px] font-bold text-rose-300 uppercase tracking-tighter">Avg Period</p>
               </div>
               <div className="bg-orange-50 p-5 rounded-[2rem] border border-orange-100 text-center">
-                <h4 className="text-2xl font-black text-orange-500">33 Days</h4>
+                <h4 className="text-2xl font-black text-orange-500">{avgStats.cycle || '--'} Days</h4>
                 <p className="text-[10px] font-bold text-orange-300 uppercase tracking-tighter">Avg Cycle</p>
               </div>
+            </div>
+
+            <div className="space-y-6 pt-4 border-t border-gray-50">
+             {periods.slice(0, 1).map((item) => ( 
+               <div key={item.id} className="h-5 w-full bg-gray-100 rounded-full flex overflow-hidden p-1 shadow-inner">
+                 <div 
+                   className="bg-rose-400 h-full rounded-full transition-all duration-1000" 
+                   style={{width: getPeriodWidth(item.startDate, item.endDate)}}
+                 ></div>
+                 <div className="bg-orange-300 h-full rounded-full opacity-30 ml-8" style={{width: '15%'}}></div>
+               </div>
+             ))}
            </div>
 
-           <div className="space-y-4 pt-4 border-t border-gray-50">
-            {periods.slice(0, 2).map((item) => (
-              <div key={item.id} className="h-4 w-full bg-gray-100 rounded-full flex overflow-hidden">
-                <div className="bg-rose-400 h-full rounded-full" style={{width: '20%'}}></div>
-                <div className="bg-orange-300 h-full rounded-full ml-10" style={{width: '15%'}}></div>
-              </div>
-            ))}
-          </div>
-
-          <button 
-            onClick={() => setCurrentView('history')}
-            className="w-full pt-6 text-indigo-600 font-black text-xs uppercase tracking-[0.2em] active:scale-95 transition-all"
-          >
-            More
-          </button>
+          <button onClick={() => setCurrentView('history')} className="w-full pt-6 text-indigo-600 font-black text-xs uppercase tracking-[0.2em] hover:opacity-70 active:scale-95 transition-all">View All History</button>
         </div>
 
-        {/* 3. Stats & Calendar */}
         <div className="space-y-8">
           <Stats /> 
           <div className="bg-white p-4 rounded-[2.5rem] border border-blue-50 shadow-sm">

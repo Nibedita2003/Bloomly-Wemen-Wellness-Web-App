@@ -1,20 +1,27 @@
 import React, { useState, useMemo } from 'react';
 import Calendar from 'react-calendar';
 import { useTheme } from '../context/ThemeContext';
-import { Edit2, Sparkles, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react'; // PlusCircle add kiya
+import { Edit2, Sparkles, ChevronLeft, ChevronRight, PlusCircle } from 'lucide-react';
 import TopBar from '../components/TopBar';
 import PeriodCalendar from '../components/PeriodCalendar';
-import { db, auth } from '../firebase'; // Firebase import kiya
-import { collection, addDoc, serverTimestamp } from "firebase/firestore"; 
+import { db, auth } from '../firebase';
+import { 
+  collection, 
+  addDoc, 
+  serverTimestamp, 
+  query, 
+  where, 
+  getDocs 
+} from "firebase/firestore"; 
 import 'react-calendar/dist/Calendar.css';
 
 const LogPage = () => {
   const { style } = useTheme(); 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activeStartDate, setActiveStartDate] = useState(new Date());
-  const [isSaving, setIsSaving] = useState(false); // Loading state ke liye
+  const [isSaving, setIsSaving] = useState(false);
 
-  // --- FEATURE: Firebase mein data save karne ka function ---
+  // --- Updated Firebase Logic with Duplicate Check ---
   const handleMarkPeriodStart = async () => {
     const user = auth.currentUser;
     if (!user) {
@@ -24,16 +31,33 @@ const LogPage = () => {
 
     setIsSaving(true);
     try {
-      // Date ko string format mein convert karna (YYYY-MM-DD)
+      // Date string format: YYYY-MM-DD
       const dateStr = selectedDate.toISOString().split('T')[0];
       
+      // 1. Check if period already exists for this specific date
+      const q = query(
+        collection(db, "users", user.uid, "periods"),
+        where("startDate", "==", dateStr)
+      );
+      
+      const existingSnap = await getDocs(q);
+
+      if (!existingSnap.empty) {
+        alert("Is date ka period pehle se hi marked hai!");
+        setIsSaving(false);
+        return; 
+      }
+
+      // 2. Add document with same structure as PlusPage for syncing
       await addDoc(collection(db, "users", user.uid, "periods"), {
         startDate: dateStr,
+        endDate: "", // Empty so it's treated as an active period
+        status: "active",
         createdAt: serverTimestamp(),
         note: "Manually logged from LogPage"
       });
 
-      alert(`Period marked for ${dateStr}! Stats page update ho gaya hai.`);
+      alert(`Period marked for ${dateStr}!`);
     } catch (error) {
       console.error("Error saving period:", error);
       alert("Kuch error aaya, please try again.");
@@ -90,7 +114,6 @@ const LogPage = () => {
         </h1>
       </header>
 
-      {/* Calendar Section */}
       <div className="px-5">
         <div className="bg-white rounded-[2.5rem] shadow-2xl shadow-gray-200/40 overflow-hidden border border-white relative">
           <div className="flex justify-between p-4 absolute w-full z-10 pointer-events-none">
@@ -142,7 +165,6 @@ const LogPage = () => {
         </div>
       </div>
 
-      {/* Prediction Details & MARK PERIOD BUTTON */}
       <div className="px-8 mt-10">
         <div className="flex justify-between items-end mb-6">
           <div>
@@ -157,7 +179,7 @@ const LogPage = () => {
           <button className={`bg-white ${currentStatus.color} p-4 rounded-2xl shadow-sm hover:scale-105 border border-gray-50`}><Edit2 size={20} /></button>
         </div>
 
-        {/* --- MARK PERIOD START BUTTON --- */}
+        {/* MARK PERIOD BUTTON with Sync Logic */}
         <button 
           onClick={handleMarkPeriodStart}
           disabled={isSaving}
